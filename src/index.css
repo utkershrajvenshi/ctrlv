@@ -1,12 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Hepta+Slab&display=swap');
+
 
 @layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-family: "Hepta Slab", Inter, system-ui, Arial, serif;
+    font-optical-sizing: auto;
+    font-style: normal;
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
