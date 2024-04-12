@@ -8,16 +8,14 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 const router = createBrowserRouter([
   {
     path: '/',
-    element: (
-      <ChakraProvider>
-        <App />
-      </ChakraProvider>
-    )
+    element: <App />
   }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <ChakraProvider>
+      <RouterProvider router={router} />
+    </ChakraProvider>
   </React.StrictMode>,
 )
