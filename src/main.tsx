@@ -4,11 +4,12 @@ import App from './App.tsx'
 import './index.css'
 import { ChakraProvider } from '@chakra-ui/react'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import { Home } from './pages/Home/Home.tsx'
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <App />
+    element: <Home />
   }
 ])
 
