@@ -5,14 +5,18 @@ import {
   DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { AppwriteContext } from "@/context"
+import { useContext, useState } from "react"
 
 const HeaderComponent: React.FC = () => {
+  const { databases } = useContext(AppwriteContext)
   const [newBoardCode, setNewBoardCode] = useState<string>()
 
   function onKeyPressHandler (e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
-      console.log(e.currentTarget.value)
+      // Call appwrite api and query the document with this name in allBoards clipboard
+      const allCollections = databases.listDocuments(process.env['DATABASE_ID'] ?? '', process.env['BOARDS_ID'] ?? '')
+      console.log(e.currentTarget.value, { allCollections })
     }
   }
   function onCreateBoardClick () {

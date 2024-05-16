@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 const OverviewScreen = () => {
   const uniqueCode = 'X7GE5Y'
   const selfDestructDate = new Date('12 Jan, 2025')
+  const clipboardName = 'My Conference Clipboard'
   return (
     <div className="h-screen font-serif">
       <ResizablePanelGroup direction="horizontal">
@@ -25,14 +26,14 @@ const OverviewScreen = () => {
             <p className="font-semibold">CtrlV</p>
           </div>
           <div className="flex flex-col align-center font-semibold">
-            <p className="my-3 text-xl text-neutral-400 text-center">My Conference Clipboard</p>
-            <div className="grid grid-cols-2 gap-3 gap-y-10 text-center text-base mt-20 mb-10">
+            <p className="my-3 text-xl text-neutral-400 text-center">{clipboardName}</p>
+            <div className="grid grid-cols-2 gap-3 gap-y-10 text-center text-sm mt-20 mb-10">
               <label htmlFor="uniqueBoardCode" className="text-neutral-500">Unique Board Code:</label>
               <p id="uniqueBoardCode">{uniqueCode}</p>
               <label htmlFor="lastDate" className="text-neutral-500">Self-Destruct Date:</label>
               <HoverCard>
                 <HoverCardTrigger asChild>
-                  <p id="lastDate" className="text-expiry-red underline decoration-dotted">{selfDestructDate.toDateString()}</p>
+                  <p id="lastDate" className="text-expiry-red underline decoration-dotted text-center">{selfDestructDate.toDateString()}</p>
                 </HoverCardTrigger>
                 <HoverCardContent className="bg-black text-white text-base p-0 w-44 text-center cursor-pointer">
                   <p className="px-1 py-2 rounded-t-md hover:bg-gray-800">Delete Now</p>
