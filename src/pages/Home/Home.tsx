@@ -1,19 +1,11 @@
 import { HeaderComponent } from "@/components/library/HeaderComponent"
 import { Button } from "@/components/ui/button"
 import { FcGoogle } from "react-icons/fc";
-import React, { useContext } from "react"
-import { AppwriteContext } from "@/context";
+import React from "react"
 
 const Home: React.FC = () => {
-  const { appwriteInstance } = useContext(AppwriteContext)
 
-  function onGoogleLogin() {
-    if (appwriteInstance.currentSession) {
-      appwriteInstance.deleteSession()
-    } else {
-      appwriteInstance.SignInOAuth()
-    }
-  }
+  function onGoogleLogin() {}
   return (
     <div className="font-serif">
       <HeaderComponent />

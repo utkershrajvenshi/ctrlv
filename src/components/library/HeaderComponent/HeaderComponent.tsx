@@ -5,21 +5,15 @@ import {
   DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { AppwriteContext } from "@/context"
-import { useContext, useState } from "react"
+import { useState } from "react"
 
 const HeaderComponent: React.FC = () => {
-  const { appwriteInstance } = useContext(AppwriteContext)
-
-  const currentSession = appwriteInstance.currentSession
 
   const [newBoardCode, setNewBoardCode] = useState<string>()
 
   async function onKeyPressHandler (e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
-      // Call appwrite api and query the document with this name in allBoards clipboard
-      const allCollections = await appwriteInstance.getAllBoards
-      console.log(e.currentTarget.value, { allCollections })
+      console.log(e.currentTarget.value)
     }
   }
   function onCreateBoardClick () {
@@ -29,14 +23,13 @@ const HeaderComponent: React.FC = () => {
   return (
     <header className="flex flex-row justify-between items-center border-b-2 border-solid sticky border-b-black px-16 py-9 font-serif text-4xl">
       <p className="font-semibold">{`CtrlV`}</p>
-      {!currentSession && (
-        <div className="flex flex-row gap-6 text-xl items-center">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="font-semibold p-6 h-14 rounded-2xl" onClick={() => setNewBoardCode('')}>
-                {'Create a Board'}
-              </Button>
-            </DialogTrigger>
+      <div className="flex flex-row gap-6 text-xl items-center">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="font-semibold p-6 h-14 rounded-2xl" onClick={() => setNewBoardCode('')}>
+              {'Create a Board'}
+            </Button>
+          </DialogTrigger>
             <DialogContent className="font-serif">
               <DialogHeader>
                 <DialogTitle>Name please...</DialogTitle>
@@ -57,7 +50,6 @@ const HeaderComponent: React.FC = () => {
           </Dialog>
           <InputField className="w-52 h-14" placeholder="Enter board code" onKeyDown={onKeyPressHandler}/>
         </div>
-      )}
     </header>
   )
 }
