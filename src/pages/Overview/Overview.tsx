@@ -12,11 +12,17 @@ import { Separator } from "@/components/ui/separator"
 import { RxArrowLeft } from "react-icons/rx";
 import { RxShare1 } from "react-icons/rx";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "react-router-dom";
 
 const OverviewScreen = () => {
-  const uniqueCode = 'X7GE5Y'
-  const selfDestructDate = new Date('12 Jan, 2025')
-  const clipboardName = 'My Conference Clipboard'
+  const { state: {
+    accessCode,
+    expiryDate,
+    clipboardName
+  } } = useLocation()
+
+  const selfDestructDate = new Date(expiryDate)
+
   return (
     <div className="h-screen font-serif">
       <ResizablePanelGroup direction="horizontal">
@@ -29,7 +35,7 @@ const OverviewScreen = () => {
             <p className="my-3 text-xl text-neutral-400 text-center">{clipboardName}</p>
             <div className="grid grid-cols-2 gap-3 gap-y-10 text-center text-sm mt-20 mb-10">
               <label htmlFor="uniqueBoardCode" className="text-neutral-500">Unique Board Code:</label>
-              <p id="uniqueBoardCode">{uniqueCode}</p>
+              <p id="uniqueBoardCode">{accessCode}</p>
               <label htmlFor="lastDate" className="text-neutral-500">Self-Destruct Date:</label>
               <HoverCard>
                 <HoverCardTrigger asChild>

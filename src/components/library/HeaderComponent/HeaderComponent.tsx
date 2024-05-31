@@ -5,15 +5,19 @@ import {
   DialogHeader, DialogTitle, DialogFooter
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
 
-const HeaderComponent: React.FC = () => {
+interface IHeaderComponent {
+  newBoardCode?: string
+  setExistingBoardCode: React.Dispatch<React.SetStateAction<string | undefined>>
+  setNewBoardCode: React.Dispatch<React.SetStateAction<string | undefined>>
+  existingBoardCode?: string
+}
+const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardCode, setNewBoardCode, setExistingBoardCode, existingBoardCode }: IHeaderComponent) => {
 
-  const [newBoardCode, setNewBoardCode] = useState<string>()
 
   async function onKeyPressHandler (e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
-      console.log(e.currentTarget.value)
+      setExistingBoardCode(e.currentTarget.value)
     }
   }
   function onCreateBoardClick () {
@@ -47,8 +51,8 @@ const HeaderComponent: React.FC = () => {
               <Button type="submit" className="p-6 h-14 rounded-2xl font-semibold" onClick={onCreateBoardClick} disabled={!newBoardCode}>Create</Button>
             </DialogFooter>
             </DialogContent>
-          </Dialog>
-          <InputField className="w-52 h-14" placeholder="Enter board code" onKeyDown={onKeyPressHandler}/>
+        </Dialog>
+          <InputField className="w-52 h-14" placeholder="Enter board code" defaultValue={existingBoardCode} onKeyDown={onKeyPressHandler}/>
         </div>
     </header>
   )
