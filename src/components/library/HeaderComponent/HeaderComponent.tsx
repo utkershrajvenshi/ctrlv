@@ -7,12 +7,13 @@ import {
 import { Label } from "@/components/ui/label"
 
 interface IHeaderComponent {
-  newBoardCode?: string
+  newBoardName?: string
   setExistingBoardCode: React.Dispatch<React.SetStateAction<string | undefined>>
-  setNewBoardCode: React.Dispatch<React.SetStateAction<string | undefined>>
+  setNewBoardName: React.Dispatch<React.SetStateAction<string | undefined>>
+  createBoardFunction: () => void
   existingBoardCode?: string
 }
-const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardCode, setNewBoardCode, setExistingBoardCode, existingBoardCode }: IHeaderComponent) => {
+const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardName, setNewBoardName, setExistingBoardCode, existingBoardCode, createBoardFunction }: IHeaderComponent) => {
 
 
   async function onKeyPressHandler (e: React.KeyboardEvent<HTMLInputElement>) {
@@ -21,7 +22,7 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardCode, setNewBoard
     }
   }
   function onCreateBoardClick () {
-    console.log({ newBoardCode })
+    createBoardFunction()
   }
 
   return (
@@ -30,7 +31,7 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardCode, setNewBoard
       <div className="flex flex-row gap-6 text-xl items-center">
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="font-semibold p-6 h-14 rounded-2xl" onClick={() => setNewBoardCode('')}>
+            <Button className="font-semibold p-6 h-14 rounded-2xl" onClick={() => setNewBoardName('')}>
               {'Create a Board'}
             </Button>
           </DialogTrigger>
@@ -44,11 +45,11 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardCode, setNewBoard
                 </Label>
                 <InputField
                   id="clipboard-name"
-                  onChange={(e) => setNewBoardCode(e.target.value)}
+                  onChange={(e) => setNewBoardName(e.target.value)}
                 />
             </div>
             <DialogFooter>
-              <Button type="submit" className="p-6 h-14 rounded-2xl font-semibold" onClick={onCreateBoardClick} disabled={!newBoardCode}>Create</Button>
+              <Button type="submit" className="p-6 h-14 rounded-2xl font-semibold" onClick={onCreateBoardClick} disabled={!newBoardName}>Create</Button>
             </DialogFooter>
             </DialogContent>
         </Dialog>
