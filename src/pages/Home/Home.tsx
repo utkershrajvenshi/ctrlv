@@ -10,6 +10,7 @@ import { LoadingSpinner } from "@/components/library/LoadingSpinner"
 import { useLocation, useNavigate } from "react-router-dom"
 import { PostgrestError } from "@supabase/supabase-js"
 import { QueryType, accessCodeValidationRegex, generateAccessCode } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
 
 interface IBoardData {
   access_code: string
@@ -21,6 +22,7 @@ interface IBoardData {
 
 const Home: React.FC = () => {
   const { supabase } = useContext(SupabaseContext)
+  const { toast } = useToast()
   const [newBoardName, setNewBoardName] = useState<string>()
   const [createBoardQueryParams, setCreateBoardQueryParams] = useState<Record<string, string>>()
   const [existingBoardCode, setExistingBoardCode] = useState<string>()
@@ -78,19 +80,23 @@ const Home: React.FC = () => {
         clips: clips,
       } })
     } else if (createBoardData?.error || createBoardError) {
-      // Here show a shadcn popup with error
-      // For now just a console log
-      console.log(createBoardError?.message || createBoardData?.error?.message, '\nError creating new board')
+      toast({
+        title: 'Error creating new board',
+        description: createBoardError?.message || createBoardData?.error?.message,
+        variant: 'destructive'
+      })
     }
-  }, [createBoardData, createBoardError, createBoardIsLoading, navigate])
+  }, [createBoardData, createBoardError, createBoardIsLoading, navigate, toast])
+
   useEffect(() => {
     // Check data to contain error and data
     if (data) {
       const { data: apiData, error } = data as { data: Record<string, unknown>, error: PostgrestError }
       if (error) {
-        // Here show a shadcn popup with error
-        // For now just a console log
-        console.log(error.message, `\nError looking up ${existingBoardCode}`)
+        toast({
+          title: `Error looking up ${existingBoardCode}`,
+          description: error.message,
+        })
       }
       if (apiData) {
         navigate('/overview', { state: {
@@ -101,16 +107,24 @@ const Home: React.FC = () => {
         } })
       }
     }
-  }, [data, existingBoardCode, navigate])
+  }, [data, existingBoardCode, navigate, toast])
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search)
     const searchedAccessCode = searchParams.get('code')
-    // TODO: Here also check if the code is valid, if not valid then show an error on this page itself
     if (searchedAccessCode && searchedAccessCode.match(accessCodeValidationRegex)) {
-      setExistingBoardCode(searchedAccessCode)
+      const validationMatch = searchedAccessCode.match(accessCodeValidationRegex)
+      if (validationMatch) {
+        setExistingBoardCode(searchedAccessCode)
+      } else {
+        toast({
+          title: 'Invalid access code',
+          description: 'The access code is not valid',
+          variant: 'destructive'
+        })
+      }
     }
-  }, [location])
+  }, [location, toast])
 
   if (isLoading) {
     return <LoadingSpinner size={64} />

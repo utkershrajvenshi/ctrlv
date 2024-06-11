@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { QRCodeCanvas } from 'qrcode.react';
 import { createShareableLink } from "@/lib/utils";
+import { useToast } from "@/components/ui/use-toast";
 
 interface IClipsArea {
   clips: string[] | null
@@ -66,6 +67,7 @@ const ClipsArea: React.FC<IClipsArea> = ({ clips }: IClipsArea) => {
 const OverviewScreen = () => {
   const { state } = useLocation()
   const { supabase } = useContext(SupabaseContext)
+  const { toast } = useToast()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -99,10 +101,15 @@ const OverviewScreen = () => {
   const onClickCopyLink = () => {
     try {
       navigator.clipboard.writeText(shareableLink).then(() => {
-        console.log('Text copied to clipboard')
+        toast({
+          description: 'Text copied to clipboard'
+        })
       })
     } catch (e) {
-      console.log('Failed to copy text: ', e)
+      toast({
+        title: 'Failed to copy text',
+        description: (e as Error).message,
+      })
     }
   }
 

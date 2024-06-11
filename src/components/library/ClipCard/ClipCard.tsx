@@ -11,6 +11,7 @@ import { RxCrossCircled, RxPlusCircled } from "react-icons/rx";
 import { LoadingSpinner } from "../LoadingSpinner";
 import { useLocation } from "react-router-dom";
 import { PostgrestError } from "@supabase/supabase-js";
+import { useToast } from "@/components/ui/use-toast";
 
 interface IClipCard {
   title?: string
@@ -47,6 +48,7 @@ const AddNewClip = () => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { state } = useLocation()
+  const { toast } = useToast()
   const [queryParams, setQueryParams] = React.useState<ICreateClip>()
   const { supabase } = useContext(SupabaseContext)
   const { data, isLoading, refetch } = useQuery({
@@ -72,9 +74,13 @@ const AddNewClip = () => {
     if (data?.data && !data.error) {
       dialogCloseRef.current?.click()
     } else if (data?.error) {
-      console.error('Could not create clip. Error: ', data?.error)
+      toast({
+        title: 'Error',
+        description: 'Could not create clip. Error: ' + data?.error.message,
+        variant: 'destructive'
+      })
     }
-  }, [data])
+  }, [data, toast])
 
   useEffect(() => {
     if (queryParams) {
@@ -111,6 +117,7 @@ const AddNewClip = () => {
 const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, variant = 'existing', clipId }: IClipCard) => {  
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
+  const { toast } = useToast()
   const { supabase } = useContext(SupabaseContext)
 
   const { refetch, data, isLoading: deleteLoading, error: deleteError } = useQuery({
@@ -123,8 +130,14 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   useEffect(() => {
     if (data?.status === 204 && !data.error && !deleteError && !deleteLoading) {
       dialogCloseRef.current?.click()
+    } else if (data?.error || deleteError) {
+      toast({
+        title: 'Error deleting clip',
+        description: data?.error?.message || deleteError?.message,
+        variant: 'destructive'
+      })
     }
-  }, [data, deleteError, deleteLoading])
+  }, [data, deleteError, deleteLoading, toast])
   
   if (variant === 'new') {
     // Show add a new clip card
@@ -164,13 +177,19 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
       textAreaRef.current.select()
       try {
         navigator.clipboard.writeText(textAreaRef.current.value).then(() => {
-          console.log('Text copied to clipboard')
+          toast({
+            description: 'Text copied to clipboard'
+          })
           if (textAreaRef.current) {
             textAreaRef.current.disabled = true
           }
         })
       } catch (e) {
-        console.error('Failed to copy text: ', e)
+        toast({
+          title: 'Failed to copy text',
+          description: (e as Error).message,
+          variant: 'destructive'
+        })
         textAreaRef.current.disabled = true
       }
     }
