@@ -8,7 +8,6 @@ import { useContext, useEffect, useState } from "react"
 import { FcGoogle } from "react-icons/fc"
 import { LoadingSpinner } from "@/components/library/LoadingSpinner"
 import { useLocation, useNavigate } from "react-router-dom"
-import { PostgrestError } from "@supabase/supabase-js"
 import { QueryType, accessCodeValidationRegex, generateAccessCode } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
@@ -91,7 +90,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     // Check data to contain error and data
     if (data) {
-      const { data: apiData, error } = data as { data: Record<string, unknown>, error: PostgrestError }
+      const { data: apiData, error } = data
       if (error) {
         toast({
           title: `Error looking up ${existingBoardCode}`,
