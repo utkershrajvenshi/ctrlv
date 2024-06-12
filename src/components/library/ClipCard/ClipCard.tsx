@@ -94,12 +94,12 @@ const AddNewClip = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex justify-center items-center w-72 h-64 bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
-          <RxPlusCircled className="h-6 w-6"/>
+        <div className="flex justify-center items-center w-44 md:w-72 h-64 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
+          <RxPlusCircled className="h-4 md:h-6 w-4 md:w-6"/>
           {"Add a Clip"}
         </div>
       </DialogTrigger>
-      <DialogContent className="font-serif max-w-3xl">
+      <DialogContent className="font-serif max-w-sm sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Create a new clip</DialogTitle>
           <section className="user-entered-area">
@@ -150,9 +150,9 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   if (isLoading) {
     return (
       <div className="flex flex-col space-y-1">
-        <Skeleton className="h-52 w-60 rounded-t-xl rounded-b-none" />
+        <Skeleton className="h-52 w-44 md:w-60 rounded-t-xl rounded-b-none" />
         <div className="space-y-2">
-          <Skeleton className="h-20 w-60 rounded-b-xl rounded-t-none" />
+          <Skeleton className="h-20 w-44 md:w-60 rounded-b-xl rounded-t-none" />
         </div>
       </div>
     )
@@ -161,7 +161,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   // Show error message if encountered
   if (error) {
     return (
-      <div className="flex justify-center items-center w-72 h-72 bg-red-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-red-700">
+      <div className="flex justify-center items-center w-44 md:w-72 h-72 bg-red-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-red-700">
         <RxCrossCircled className="h-6 w-6"/>
         {"Could not load clip"}
       </div>
@@ -205,10 +205,10 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex flex-col w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
+        <div className="flex flex-col w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold truncate">{title}</p>
-            <p className="text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
+            <p className="text-xs md:text-sm font-semibold truncate">{title}</p>
+            <p className="text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
           </div>
           <div className="flex justify-between items-center gap-2 text-xs">
             <div className="flex flex-row items-center justify-center w-10 h-10">
@@ -221,11 +221,11 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
                 )
                 : null }
             </div>
-            <p className="text-slate-500">{parseDateTimestamp(timestamp)}</p>
+            <p className="text-slate-500 text-[10px] md:text-base">{parseDateTimestamp(timestamp)}</p>
           </div>
         </div>
       </DialogTrigger>
-      <DialogContent className="font-serif max-w-3xl">
+      <DialogContent className="font-serif max-w-sm sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{parseDateTimestamp(timestamp)}</DialogTitle>
           <section className="user-entered-area">
