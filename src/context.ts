@@ -17,7 +17,7 @@ export const ATTACHMENTS_POSTGRES = 'attachments'
 
 export enum QUERY_KEYS {
   FETCH_EXISTING = 'fetchExistingBoards',
-  FETCH_CLIP = 'fetchClip',
+  FETCH_CLIPS = 'fetchClips',
   CREATE_CLIP = 'createClip',
   UPDATE_CLIP = 'updateClip',
   DELETE_CLIP = 'deleteClip',

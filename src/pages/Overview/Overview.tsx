@@ -13,7 +13,7 @@ import { RxArrowLeft, RxCopy, RxShare1 } from "react-icons/rx";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ACCESS_CODE_POSTGRES, ATTACHMENTS_POSTGRES, BOARDS_RELATION, CLIPS_RELATION, CLIP_CREATED_AT_POSTGRES, CLIP_TITLE_POSTGRES, QUERY_KEYS, SupabaseContext, TEXT_CONTENT_POSTGRES } from "@/context";
 import { ClipCard } from "@/components/library/ClipCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -23,33 +23,44 @@ import { createShareableLink } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
 interface IClipsArea {
-  clips: string[] | null
+  accessCode?: string | null
 }
-const ClipsArea: React.FC<IClipsArea> = ({ clips }: IClipsArea) => {
+const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
   // Responsible for displaying the listView of clips
   const { supabase } = useContext(SupabaseContext)
+  const { toast } = useToast()
   
-  const queryResults = useQueries({
-    queries: clips?.map((clipId) => ({
-      queryKey: [QUERY_KEYS.FETCH_CLIP, clipId],
-      queryFn: async () => {
-        return await supabase.from(CLIPS_RELATION).select().eq('id', clipId).single()
-      }
-    })) ?? []
+  const { error, data, isLoading, refetch: refetchClips } = useQuery({
+    queryKey: [QUERY_KEYS.FETCH_CLIPS, accessCode],
+    queryFn: async () => {
+      return await supabase.from(CLIPS_RELATION).select().eq('belongs_to', accessCode)
+    }
   }) // flex flex-wrap gap-4 my-6 // grid gap-[12px] sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4
+  
+  useEffect(() => {
+    if (!isLoading && (error || !data?.data || data?.error)) {
+      toast({
+        title: 'Error',
+        description: (error?.message || data?.error?.message) ?? 'Something went wrong.',
+        variant: 'destructive'
+      })
+    }
+  }, [error, data, isLoading, toast])
+
   let clipResults = null
-  if (clips) {
-    clipResults = queryResults.map(({ error, data, isLoading }) => (
+  if (data?.data) {
+    clipResults = data.data.map((clipObject: Record<string, string | unknown[]>) => (
       <div className="flex">
         <ClipCard
-          key={data?.data?.id}
-          clipId={data?.data?.id}
-          description={data?.data?.[TEXT_CONTENT_POSTGRES]}
-          title={data?.data?.[CLIP_TITLE_POSTGRES]}
-          error={error ?? data?.error}
-          isLoading={isLoading}
-          timestamp={data?.data?.[CLIP_CREATED_AT_POSTGRES]}
-          attachmentsCount={data?.data?.[ATTACHMENTS_POSTGRES]?.length ?? 0}
+          key={clipObject?.id as string}
+          clipId={clipObject?.id as string}
+          description={clipObject?.[TEXT_CONTENT_POSTGRES] as string}
+          title={clipObject?.[CLIP_TITLE_POSTGRES] as string}
+          error={null}
+          isLoading={false}
+          refetchCallback={refetchClips}
+          timestamp={clipObject?.[CLIP_CREATED_AT_POSTGRES] as string}
+          attachmentsCount={clipObject?.[ATTACHMENTS_POSTGRES]?.length ?? 0}
         />
       </div>
     ))
@@ -101,7 +112,7 @@ const OverviewScreen = () => {
     accessCode,
     expiryDate,
     clipboardName,
-    clips
+    // clips // Could be used in realtime implementation
   } = state ?? {}
 
   const { refetch: deleteCurrentBoard, data, isLoading: deleteBoardLoading, error: deleteBoardError } = useQuery({
@@ -207,7 +218,7 @@ const OverviewScreen = () => {
             <p className="font-bold text-2xl md:text-3xl lg:text-4xl">Saved Clips</p>
           </section>
           <section className="overflow-y-auto overscroll-auto h-full">
-            <ClipsArea clips={clips}/>
+            <ClipsArea accessCode={accessCode}/>
           </section>
         </ResizablePanel>
       </ResizablePanelGroup>
