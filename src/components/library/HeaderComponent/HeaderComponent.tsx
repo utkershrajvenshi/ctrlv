@@ -26,16 +26,16 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardName, setNewBoard
   }
 
   return (
-    <header className="flex flex-row justify-between items-center border-b-2 border-solid sticky border-b-black px-16 py-9 font-serif text-4xl">
-      <p className="font-semibold">{`CtrlV`}</p>
-      <div className="flex flex-row gap-6 text-xl items-center">
+    <header className="flex flex-col sm:flex-row justify-between items-center border-b-2 border-solid sticky border-b-black p-4 md:px-16 md:py-9 font-serif text-3xl md:text-4xl">
+      <p className="font-semibold pb-2 sm:pb-0">{`CtrlV`}</p>
+      <div className="flex flex-row justify-between w-full sm:w-fit sm:gap-6 text-xl items-center">
         <Dialog>
           <DialogTrigger asChild>
             <Button className="font-semibold p-6 h-14 rounded-2xl" onClick={() => setNewBoardName('')}>
               {'Create a Board'}
             </Button>
           </DialogTrigger>
-            <DialogContent className="font-serif">
+            <DialogContent className="font-serif max-w-sm sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Name please...</DialogTitle>
               </DialogHeader>

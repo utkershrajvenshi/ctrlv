@@ -1,11 +1,9 @@
 import { HeaderComponent } from "@/components/library/HeaderComponent"
-import { Button } from "@/components/ui/button"
 import {
   ACCESS_CODE_POSTGRES, BOARDS_RELATION, CLIPBOARD_NAME_POSTGRES, CLIPS_POSTGRES, EXPIRY_DATE_POSTGRES, QUERY_KEYS, SupabaseContext
 } from "@/context"
 import { skipToken, useQueries } from "@tanstack/react-query"
 import { useContext, useEffect, useState } from "react"
-import { FcGoogle } from "react-icons/fc"
 import { LoadingSpinner } from "@/components/library/LoadingSpinner"
 import { useLocation, useNavigate } from "react-router-dom"
 import { QueryType, accessCodeValidationRegex, generateAccessCode } from "@/lib/utils"
@@ -49,8 +47,6 @@ const Home: React.FC = () => {
     isLoading: createBoardIsLoading,
     refetch: createNewBoard
   } = createBoardQueryResult
-
-  function onGoogleLogin() {}
 
   const createBoard = () => {
     if (newBoardName) {
@@ -138,15 +134,10 @@ const Home: React.FC = () => {
         setExistingBoardCode={setExistingBoardCode}
         existingBoardCode={existingBoardCode}
       />
-      <div className="flex gap-16 p-16 w-full">
-        <div className="flex flex-col w-3/5 gap-16 font-bold text-5xl">
+      <div className="flex gap-16 p-8 md:p-12 lg:p-16 w-full">
+        <div className="flex flex-col w-full sm:w-3/5 gap-16 font-bold text-3xl md:text-4xl lg:text-5xl">
           <p>{'Create anywhere-available clipboards in seconds for increased productivity across teams.'}</p>
           <p className="text-success-green">{'For free!'}</p>
-        </div>
-        <div className="w-2/5 flex flex-col justify-center h-44">
-          <Button variant="secondary" size="lg" className="mx-auto font-semibold text-lg" onClick={onGoogleLogin}>
-            <FcGoogle className="mr-2 h-7 w-7"/> Login with Google
-          </Button>
         </div>
       </div>
     </div>
