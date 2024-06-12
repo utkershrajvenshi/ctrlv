@@ -113,6 +113,10 @@ const OverviewScreen = () => {
     }
   }
 
+  const onClickBackButton = () => {
+    navigate('/')
+  }
+
   const onClickDeleteNow = () => {
     deleteCurrentBoard()
   }
@@ -122,7 +126,7 @@ const OverviewScreen = () => {
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel className="flex flex-col p-9 justify-between align-center bg-black text-white font-serif" defaultSize={21} minSize={21} maxSize={31}>
           <div className="flex justify-between align-center text-4xl">
-            <RxArrowLeft />
+            <RxArrowLeft onClick={onClickBackButton} className="cursor-pointer"/>
             <p className="font-semibold">CtrlV</p>
           </div>
           <div className="flex flex-col align-center font-semibold">
