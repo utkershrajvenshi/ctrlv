@@ -207,8 +207,8 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
       <DialogTrigger asChild>
         <div className="flex flex-col w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
           <div className="flex flex-col gap-2">
-            <p className="text-[10px] md:text-sm font-semibold truncate">{title}</p>
-            <p className="text-[10px] md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
+            <p className="text-xs md:text-sm font-semibold truncate">{title}</p>
+            <p className="text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
           </div>
           <div className="flex justify-between items-center gap-2 text-xs">
             <div className="flex flex-row items-center justify-center w-10 h-10">
