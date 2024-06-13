@@ -45,6 +45,7 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardName, setNewBoard
                 </Label>
                 <InputField
                   id="clipboard-name"
+                  maxLength={200}
                   onChange={(e) => setNewBoardName(e.target.value)}
                 />
             </div>

@@ -229,7 +229,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
         <DialogHeader>
           <DialogTitle>{parseDateTimestamp(timestamp)}</DialogTitle>
           <section className="user-entered-area">
-            <Textarea className="mt-4" maxLength={64} ref={textAreaRef} disabled placeholder="Start typing..." value={description} />
+            <Textarea className="mt-4" maxLength={2000} ref={textAreaRef} disabled placeholder="Start typing..." value={description} />
             <div className="flex justify-between items-center mt-4">
               <Button className="font-semibold px-6 py-3 h-12 rounded-2xl" onClick={onClickCopyClip}>Copy text</Button>
               <Button variant="outline" size="icon" onClick={onClickDeleteClip}>
