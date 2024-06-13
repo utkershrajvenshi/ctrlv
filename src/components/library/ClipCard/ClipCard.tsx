@@ -94,7 +94,7 @@ const AddNewClip = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
+        <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 h-64 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
           <RxPlusCircled className="h-4 md:h-6 w-4 md:w-6"/>
           {"Add a Clip"}
         </div>
