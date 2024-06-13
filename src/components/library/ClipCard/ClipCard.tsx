@@ -103,7 +103,7 @@ const AddNewClip = () => {
         <DialogHeader>
           <DialogTitle>Create a new clip</DialogTitle>
           <section className="user-entered-area">
-            <Textarea className="mt-4" maxLength={64} ref={textAreaRef} placeholder="Start typing..." />
+            <Textarea className="mt-4" maxLength={2000} ref={textAreaRef} placeholder="Start typing..." />
             <div className="flex justify-between items-center mt-4">
               <Button className="font-semibold px-6 py-3 h-12 rounded-2xl" onClick={onClickCreateClip}>Create</Button>
               <DialogClose ref={dialogCloseRef} className="hidden" />
