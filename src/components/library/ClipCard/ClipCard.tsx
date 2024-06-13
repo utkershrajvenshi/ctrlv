@@ -94,7 +94,7 @@ const AddNewClip = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex justify-center items-center w-44 md:w-72 h-64 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
+        <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
           <RxPlusCircled className="h-4 md:h-6 w-4 md:w-6"/>
           {"Add a Clip"}
         </div>
@@ -161,7 +161,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   // Show error message if encountered
   if (error) {
     return (
-      <div className="flex justify-center items-center w-44 md:w-72 h-72 bg-red-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-red-700">
+      <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 h-72 bg-red-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-red-700">
         <RxCrossCircled className="h-6 w-6"/>
         {"Could not load clip"}
       </div>
@@ -205,12 +205,12 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex flex-col w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
+        <div className="flex flex-col w-32 mobile-medium:w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
           <div className="flex flex-col gap-2">
-            <p className="text-xs md:text-sm font-semibold truncate">{title}</p>
-            <p className="text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
+            <p className="text-mmd mobile-medium:text-xs md:text-sm font-semibold truncate">{title}</p>
+            <p className="text-mmd mobile-medium:text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
           </div>
-          <div className="flex justify-between items-center gap-2 text-xs">
+          <div className="flex justify-between items-center gap-2 text-mmd mobile-medium:text-xs">
             <div className="flex flex-row items-center justify-center w-10 h-10">
               { attachmentsCount
                 ? (
@@ -221,7 +221,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
                 )
                 : null }
             </div>
-            <p className="text-slate-500 text-[10px] md:text-sm">{parseDateTimestamp(timestamp)}</p>
+            <p className="text-slate-500 text-[9px] mobile-medium:text-[10px] md:text-sm">{parseDateTimestamp(timestamp)}</p>
           </div>
         </div>
       </DialogTrigger>

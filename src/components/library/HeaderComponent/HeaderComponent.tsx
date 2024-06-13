@@ -31,7 +31,7 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardName, setNewBoard
       <div className="flex flex-row justify-between w-full sm:w-fit sm:gap-6 text-xl items-center">
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="font-semibold p-6 h-14 rounded-2xl" onClick={() => setNewBoardName('')}>
+            <Button className="font-semibold p-3 mobile-medium:p-6 h-14 rounded-2xl" onClick={() => setNewBoardName('')}>
               {'Create a Board'}
             </Button>
           </DialogTrigger>
@@ -45,7 +45,7 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardName, setNewBoard
                 </Label>
                 <InputField
                   id="clipboard-name"
-                  maxLength={200}
+                  maxLength={50}
                   onChange={(e) => setNewBoardName(e.target.value)}
                 />
             </div>
@@ -54,7 +54,7 @@ const HeaderComponent: React.FC<IHeaderComponent> = ({ newBoardName, setNewBoard
             </DialogFooter>
             </DialogContent>
         </Dialog>
-          <InputField className="w-52 h-14" placeholder="Enter board code" defaultValue={existingBoardCode} onKeyDown={onKeyPressHandler}/>
+          <InputField className="w-36 mobile-medium:w-52 text-xs mobile-medium:text-sm px-2 mobile-medium:px-7 h-14" placeholder="Enter board code" defaultValue={existingBoardCode} onKeyDown={onKeyPressHandler}/>
         </div>
     </header>
   )
