@@ -3,7 +3,7 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { CLIPS_RELATION, QUERY_KEYS, SupabaseContext } from "@/context";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid"
 import React, { useContext, useEffect, useRef } from "react"
 import { RiAttachment2, RiDeleteBin2Fill } from "react-icons/ri";
@@ -22,7 +22,6 @@ interface IClipCard {
   error?: Error | PostgrestError | null
   isLoading?: boolean,
   clipId?: string
-  refetchCallback?: () => void
 }
 
 interface ICreateClip {
@@ -45,7 +44,7 @@ function parseDateTimestamp(timestamp: string | undefined) {
   return timeString + ', ' + dateObject.toDateString()
 }
 
-const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => void }) => {
+const AddNewClip = () => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { state } = useLocation()
@@ -57,7 +56,6 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
     queryFn: async () => await supabase.from(CLIPS_RELATION).insert({ ...queryParams }).select(),
     enabled: false
   })
-  const queryClient = useQueryClient()
 
   const onClickCreateClip = () => {
     const uniqueId = uuidv4()
@@ -75,11 +73,6 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
   useEffect(() => {
     if (data?.data && !data.error) {
       dialogCloseRef.current?.click()
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.FETCH_CLIPS] })
-
-      if (refetchClipsCallback) {
-        refetchClipsCallback()
-      }
     } else if (data?.error) {
       toast({
         title: 'Error',
@@ -87,7 +80,7 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
         variant: 'destructive'
       })
     }
-  }, [data, queryClient, refetchClipsCallback, toast])
+  }, [data, toast])
 
   useEffect(() => {
     if (queryParams) {
@@ -101,7 +94,7 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex justify-center items-center w-44 md:w-72 h-64 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
+        <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 h-64 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
           <RxPlusCircled className="h-4 md:h-6 w-4 md:w-6"/>
           {"Add a Clip"}
         </div>
@@ -110,7 +103,7 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
         <DialogHeader>
           <DialogTitle>Create a new clip</DialogTitle>
           <section className="user-entered-area">
-            <Textarea className="mt-4" maxLength={64} ref={textAreaRef} placeholder="Start typing..." />
+            <Textarea className="mt-4" maxLength={2000} ref={textAreaRef} placeholder="Start typing..." />
             <div className="flex justify-between items-center mt-4">
               <Button className="font-semibold px-6 py-3 h-12 rounded-2xl" onClick={onClickCreateClip}>Create</Button>
               <DialogClose ref={dialogCloseRef} className="hidden" />
@@ -121,12 +114,11 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
     </Dialog>
   )
 }
-const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, variant = 'existing', clipId, refetchCallback }: IClipCard) => {  
+const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, variant = 'existing', clipId }: IClipCard) => {  
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { toast } = useToast()
   const { supabase } = useContext(SupabaseContext)
-  const queryClient = useQueryClient()
 
   const { refetch, data, isLoading: deleteLoading, error: deleteError } = useQuery({
     queryKey: [QUERY_KEYS.DELETE_CLIP],
@@ -138,10 +130,6 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   useEffect(() => {
     if (data?.status === 204 && !data.error && !deleteError && !deleteLoading) {
       dialogCloseRef.current?.click()
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.FETCH_CLIPS] })
-      if (refetchCallback) {
-        refetchCallback()
-      }
     } else if (data?.error || deleteError) {
       toast({
         title: 'Error deleting clip',
@@ -149,12 +137,12 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
         variant: 'destructive'
       })
     }
-  }, [data, deleteError, deleteLoading, queryClient, refetchCallback, toast])
+  }, [data, deleteError, deleteLoading, toast])
   
   if (variant === 'new') {
     // Show add a new clip card
     return (
-      <AddNewClip refetchClipsCallback={refetchCallback}/>
+      <AddNewClip />
     )
   }
   
@@ -173,7 +161,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   // Show error message if encountered
   if (error) {
     return (
-      <div className="flex justify-center items-center w-44 md:w-72 h-72 bg-red-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-red-700">
+      <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 h-72 bg-red-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-red-700">
         <RxCrossCircled className="h-6 w-6"/>
         {"Could not load clip"}
       </div>
@@ -217,12 +205,12 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex flex-col w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
+        <div className="flex flex-col w-32 mobile-medium:w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
           <div className="flex flex-col gap-2">
-            <p className="text-xs md:text-sm font-semibold truncate">{title}</p>
-            <p className="text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
+            <p className="text-mmd mobile-medium:text-xs md:text-sm font-semibold truncate">{title}</p>
+            <p className="text-mmd mobile-medium:text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
           </div>
-          <div className="flex justify-between items-center gap-2 text-xs">
+          <div className="flex justify-between items-center gap-2 text-mmd mobile-medium:text-xs">
             <div className="flex flex-row items-center justify-center w-10 h-10">
               { attachmentsCount
                 ? (
@@ -233,7 +221,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
                 )
                 : null }
             </div>
-            <p className="text-slate-500 text-[10px] md:text-sm">{parseDateTimestamp(timestamp)}</p>
+            <p className="text-slate-500 text-[9px] mobile-medium:text-[10px] md:text-sm">{parseDateTimestamp(timestamp)}</p>
           </div>
         </div>
       </DialogTrigger>
@@ -241,7 +229,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
         <DialogHeader>
           <DialogTitle>{parseDateTimestamp(timestamp)}</DialogTitle>
           <section className="user-entered-area">
-            <Textarea className="mt-4" maxLength={64} ref={textAreaRef} disabled placeholder="Start typing..." value={description} />
+            <Textarea className="mt-4" maxLength={2000} ref={textAreaRef} disabled placeholder="Start typing..." value={description} />
             <div className="flex justify-between items-center mt-4">
               <Button className="font-semibold px-6 py-3 h-12 rounded-2xl" onClick={onClickCopyClip}>Copy text</Button>
               <Button variant="outline" size="icon" onClick={onClickDeleteClip}>

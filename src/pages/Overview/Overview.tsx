@@ -47,6 +47,28 @@ const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
     }
   }, [error, data, isLoading, toast])
 
+  useEffect(() => {
+    // Supabase subscription for clipboard changes
+    supabase.channel('clipboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: CLIPS_RELATION,
+          filter: `belongs_to=eq.${accessCode}`
+        }, () => {
+          refetchClips()
+        }
+      ).subscribe()
+
+    return () => {
+      supabase.channel('clipboard-changes')
+        .unsubscribe()
+        .then((val) => console.log('Unsubscribed from realtime:', val))
+    }
+  }, [supabase, accessCode, refetchClips])
+
   let clipResults = null
   if (data?.data) {
     clipResults = data.data.map((clipObject: Record<string, string | unknown[]>) => (
@@ -58,7 +80,6 @@ const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
           title={clipObject?.[CLIP_TITLE_POSTGRES] as string}
           error={null}
           isLoading={false}
-          refetchCallback={refetchClips}
           timestamp={clipObject?.[CLIP_CREATED_AT_POSTGRES] as string}
           attachmentsCount={clipObject?.[ATTACHMENTS_POSTGRES]?.length ?? 0}
         />

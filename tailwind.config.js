@@ -20,6 +20,12 @@ module.exports = {
       },
     },
     extend: {
+      fontSize: {
+        mmd: '0.7rem',
+      },
+      screens: {
+        'mobile-medium': '420px',
+      },
       lineClamp: {
         8: '8',
         10: '10',
