@@ -3,7 +3,7 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { CLIPS_RELATION, QUERY_KEYS, SupabaseContext } from "@/context";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid"
 import React, { useContext, useEffect, useRef } from "react"
 import { RiAttachment2, RiDeleteBin2Fill } from "react-icons/ri";
@@ -22,7 +22,6 @@ interface IClipCard {
   error?: Error | PostgrestError | null
   isLoading?: boolean,
   clipId?: string
-  refetchCallback?: () => void
 }
 
 interface ICreateClip {
@@ -45,7 +44,7 @@ function parseDateTimestamp(timestamp: string | undefined) {
   return timeString + ', ' + dateObject.toDateString()
 }
 
-const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => void }) => {
+const AddNewClip = () => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { state } = useLocation()
@@ -57,7 +56,6 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
     queryFn: async () => await supabase.from(CLIPS_RELATION).insert({ ...queryParams }).select(),
     enabled: false
   })
-  const queryClient = useQueryClient()
 
   const onClickCreateClip = () => {
     const uniqueId = uuidv4()
@@ -75,11 +73,6 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
   useEffect(() => {
     if (data?.data && !data.error) {
       dialogCloseRef.current?.click()
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.FETCH_CLIPS] })
-
-      if (refetchClipsCallback) {
-        refetchClipsCallback()
-      }
     } else if (data?.error) {
       toast({
         title: 'Error',
@@ -87,7 +80,7 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
         variant: 'destructive'
       })
     }
-  }, [data, queryClient, refetchClipsCallback, toast])
+  }, [data, toast])
 
   useEffect(() => {
     if (queryParams) {
@@ -121,12 +114,11 @@ const AddNewClip = ({ refetchClipsCallback }: { refetchClipsCallback?: () => voi
     </Dialog>
   )
 }
-const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, variant = 'existing', clipId, refetchCallback }: IClipCard) => {  
+const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, variant = 'existing', clipId }: IClipCard) => {  
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { toast } = useToast()
   const { supabase } = useContext(SupabaseContext)
-  const queryClient = useQueryClient()
 
   const { refetch, data, isLoading: deleteLoading, error: deleteError } = useQuery({
     queryKey: [QUERY_KEYS.DELETE_CLIP],
@@ -138,10 +130,6 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
   useEffect(() => {
     if (data?.status === 204 && !data.error && !deleteError && !deleteLoading) {
       dialogCloseRef.current?.click()
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.FETCH_CLIPS] })
-      if (refetchCallback) {
-        refetchCallback()
-      }
     } else if (data?.error || deleteError) {
       toast({
         title: 'Error deleting clip',
@@ -149,12 +137,12 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
         variant: 'destructive'
       })
     }
-  }, [data, deleteError, deleteLoading, queryClient, refetchCallback, toast])
+  }, [data, deleteError, deleteLoading, toast])
   
   if (variant === 'new') {
     // Show add a new clip card
     return (
-      <AddNewClip refetchClipsCallback={refetchCallback}/>
+      <AddNewClip />
     )
   }
   
