@@ -1,1 +1,1 @@
-export { ClipCard } from "./ClipCard"
+export { ClipCard, AddNewClip } from "./ClipCard"

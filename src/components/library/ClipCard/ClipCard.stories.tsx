@@ -18,8 +18,7 @@ const clipCardProps: IClipCard = {
   title: 'Clip Title',
   description: 'Clip Description',
   timestamp: '09-09-2002',
-  attachmentsCount: 5,
-  variant: 'existing',
+  attachmentsCount: 5
 }
 
 const clipCardWithoutAttachments: IClipCard = {
