@@ -15,7 +15,6 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface IClipCard {
   title?: string
-  variant?: 'existing' | 'new'
   description?: string
   timestamp?: string
   attachmentsCount?: number
@@ -44,7 +43,7 @@ function parseDateTimestamp(timestamp: string | undefined) {
   return timeString + ', ' + dateObject.toDateString()
 }
 
-const AddNewClip = () => {
+export const AddNewClip = () => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { state } = useLocation()
@@ -114,7 +113,7 @@ const AddNewClip = () => {
     </Dialog>
   )
 }
-const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, variant = 'existing', clipId }: IClipCard) => {  
+const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, clipId }: IClipCard) => {  
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { toast } = useToast()
@@ -138,13 +137,6 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
       })
     }
   }, [data, deleteError, deleteLoading, toast])
-  
-  if (variant === 'new') {
-    // Show add a new clip card
-    return (
-      <AddNewClip />
-    )
-  }
   
   // Show loading skeleton
   if (isLoading) {

@@ -15,7 +15,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ACCESS_CODE_POSTGRES, ATTACHMENTS_POSTGRES, BOARDS_RELATION, CLIPS_RELATION, CLIP_CREATED_AT_POSTGRES, CLIP_TITLE_POSTGRES, QUERY_KEYS, SupabaseContext, TEXT_CONTENT_POSTGRES } from "@/context";
-import { ClipCard } from "@/components/library/ClipCard";
+import { ClipCard, AddNewClip } from "@/components/library/ClipCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { QRCodeCanvas } from 'qrcode.react';
@@ -69,28 +69,24 @@ const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
     }
   }, [supabase, accessCode, refetchClips])
 
-  let clipResults = null
-  if (data?.data) {
-    clipResults = data.data.map((clipObject: Record<string, string | unknown[]>) => (
-      <div className="flex">
-        <ClipCard
-          key={clipObject?.id as string}
-          clipId={clipObject?.id as string}
-          description={clipObject?.[TEXT_CONTENT_POSTGRES] as string}
-          title={clipObject?.[CLIP_TITLE_POSTGRES] as string}
-          error={null}
-          isLoading={false}
-          timestamp={clipObject?.[CLIP_CREATED_AT_POSTGRES] as string}
-          attachmentsCount={clipObject?.[ATTACHMENTS_POSTGRES]?.length ?? 0}
-        />
-      </div>
-    ))
-  }
   return (
     <div className="flex flex-wrap gap-4 py-4 md:py-6">
       {[
-        ...clipResults ?? [],
-        <ClipCard variant="new" />
+        ...data?.data?.map((clipObject: Record<string, string | unknown[]>) => (
+          <div className="flex">
+            <ClipCard
+              key={clipObject?.id as string}
+              clipId={clipObject?.id as string}
+              description={clipObject?.[TEXT_CONTENT_POSTGRES] as string}
+              title={clipObject?.[CLIP_TITLE_POSTGRES] as string}
+              error={null}
+              isLoading={false}
+              timestamp={clipObject?.[CLIP_CREATED_AT_POSTGRES] as string}
+              attachmentsCount={clipObject?.[ATTACHMENTS_POSTGRES]?.length ?? 0}
+            />
+          </div>
+        )) ?? [],
+        <AddNewClip key="new" />
       ]}
     </div>
   )
