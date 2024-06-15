@@ -3,11 +3,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
 import { Separator } from "@/components/ui/separator"
 import { RxArrowLeft, RxCopy, RxShare1 } from "react-icons/rx";
 import { Button } from "@/components/ui/button";
@@ -21,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { QRCodeCanvas } from 'qrcode.react';
 import { createShareableLink } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { PopoverTrigger, Popover, PopoverContent } from "@/components/ui/popover";
 
 interface IClipsArea {
   accessCode?: string | null
@@ -184,16 +180,14 @@ const OverviewScreen = () => {
               <label htmlFor="uniqueBoardCode" className="text-neutral-500">Unique Board Code:</label>
               <p id="uniqueBoardCode">{accessCode}</p>
               <label htmlFor="lastDate" className="text-neutral-500">Self-Destruct Date:</label>
-              <HoverCard>
-                <HoverCardTrigger asChild>
-                  <p id="lastDate" className="text-expiry-red underline decoration-dotted text-center">{selfDestructDate.toDateString()}</p>
-                </HoverCardTrigger>
-                <HoverCardContent className="bg-black text-white text-base p-0 w-44 text-center cursor-pointer">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <p id="lastDate" className="text-expiry-red underline decoration-dotted text-center font-serif">{selfDestructDate.toDateString()}</p>
+                </PopoverTrigger>
+                <PopoverContent className="bg-black text-white text-base p-0 w-44 text-center cursor-pointer">
                   <p className="px-1 py-2 rounded-t-md hover:bg-gray-768" onClick={onClickDeleteNow}>Delete Now</p>
-                  <Separator />
-                  <p className="px-1 py-2 rounded-b-md hover:bg-gray-768">Extend Date</p>
-                </HoverCardContent>
-              </HoverCard>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <Dialog>
