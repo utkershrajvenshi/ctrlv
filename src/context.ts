@@ -14,6 +14,7 @@ export const TEXT_CONTENT_POSTGRES = 'text_content'
 export const CLIP_TITLE_POSTGRES = 'title'
 export const CLIP_CREATED_AT_POSTGRES = 'created_at'
 export const ATTACHMENTS_POSTGRES = 'attachments'
+export const ATTACHMENTS_BUCKET_NAME = 'public-attachments'
 
 export enum QUERY_KEYS {
   FETCH_EXISTING = 'fetchExistingBoards',
@@ -24,4 +25,5 @@ export enum QUERY_KEYS {
   CREATE_BOARD = 'createBoard',
   UPDATE_BOARD = 'updateBoard',
   DELETE_BOARD = 'deleteBoard',
+  UPLOAD_FILE = 'uploadToStorage',
 }
