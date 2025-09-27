@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useContext, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ACCESS_CODE_POSTGRES, ATTACHMENTS_POSTGRES, BOARDS_RELATION, CLIPS_RELATION, CLIP_CREATED_AT_POSTGRES, CLIP_TITLE_POSTGRES, QUERY_KEYS, SupabaseContext, TEXT_CONTENT_POSTGRES } from "@/context";
+import { ACCESS_CODE_POSTGRES, BOARDS_RELATION, CLIPS_RELATION, CLIP_CREATED_AT_POSTGRES, CLIP_TITLE_POSTGRES, QUERY_KEYS, SupabaseContext, TEXT_CONTENT_POSTGRES } from "@/context";
 import { ClipCard, AddNewClip } from "@/components/library/ClipCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { PopoverTrigger, Popover, PopoverContent } from "@/components/ui/popover
 interface IClipsArea {
   accessCode?: string | null
 }
+
 const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
   // Responsible for displaying the listView of clips
   const { supabase } = useContext(SupabaseContext)
@@ -29,9 +30,9 @@ const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
   const { error, data, isLoading, refetch: refetchClips } = useQuery({
     queryKey: [QUERY_KEYS.FETCH_CLIPS, accessCode],
     queryFn: async () => {
-      return await supabase.from(CLIPS_RELATION).select().eq('belongs_to', accessCode)
+      return await supabase.from(CLIPS_RELATION).select().eq('belongs_to', accessCode).order('created_at', { ascending: false })
     }
-  }) // flex flex-wrap gap-4 my-6 // grid gap-[12px] sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4
+  })
   
   useEffect(() => {
     if (!isLoading && (error || !data?.data || data?.error)) {
@@ -45,7 +46,7 @@ const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
 
   useEffect(() => {
     // Supabase subscription for clipboard changes
-    supabase.channel('clipboard-changes')
+    const channel = supabase.channel('clipboard-changes')
       .on(
         'postgres_changes',
         {
@@ -53,32 +54,46 @@ const ClipsArea: React.FC<IClipsArea> = ({ accessCode }: IClipsArea) => {
           schema: 'public',
           table: CLIPS_RELATION,
           filter: `belongs_to=eq.${accessCode}`
-        }, () => {
+        }, 
+        (payload) => {
+          console.log('Real-time update:', payload)
           refetchClips()
         }
-      ).subscribe()
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status)
+      })
 
     return () => {
-      supabase.channel('clipboard-changes')
-        .unsubscribe()
-        .then((val) => console.log('Unsubscribed from realtime:', val))
+      channel.unsubscribe()
     }
   }, [supabase, accessCode, refetchClips])
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-wrap gap-4 py-4 md:py-6">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <ClipCard key={index} isLoading={true} />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-wrap gap-4 py-4 md:py-6">
       {[
-        ...data?.data?.map((clipObject: Record<string, string | unknown[]>) => (
-          <div className="flex">
+        ...data?.data?.map((clipObject: Record<string, unknown>) => (
+          <div key={clipObject?.id as string} className="flex">
             <ClipCard
-              key={clipObject?.id as string}
               clipId={clipObject?.id as string}
               description={clipObject?.[TEXT_CONTENT_POSTGRES] as string}
               title={clipObject?.[CLIP_TITLE_POSTGRES] as string}
               error={null}
               isLoading={false}
               timestamp={clipObject?.[CLIP_CREATED_AT_POSTGRES] as string}
-              attachmentsCount={clipObject?.[ATTACHMENTS_POSTGRES]?.length ?? 0}
+              attachmentsCount={clipObject?.attachment_path ? 1 : 0}
+              attachmentPath={clipObject?.attachment_path as string}
+              attachmentName={clipObject?.attachment_name as string}
             />
           </div>
         )) ?? [],
@@ -118,19 +133,40 @@ const OverviewScreen = () => {
 
     // Cleanup function to remove event listener on component unmount
     return () => window.removeEventListener("resize", handleResize)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const {
     accessCode,
     expiryDate,
     clipboardName,
-    // clips // Could be used in realtime implementation
   } = state ?? {}
 
   const { refetch: deleteCurrentBoard, data, isLoading: deleteBoardLoading, error: deleteBoardError } = useQuery({
     queryKey: [QUERY_KEYS.DELETE_BOARD, accessCode],
-    queryFn: async () => await supabase.from(BOARDS_RELATION).delete().eq(ACCESS_CODE_POSTGRES, accessCode),
+    queryFn: async () => {
+      // First, get all clips for this board to clean up their attachments
+      const { data: clipsData } = await supabase
+        .from(CLIPS_RELATION)
+        .select('attachment_path')
+        .eq('belongs_to', accessCode)
+      
+      // Delete all attachments from storage
+      if (clipsData && clipsData.length > 0) {
+        const attachmentPaths = clipsData
+          .filter(clip => clip.attachment_path)
+          .map(clip => clip.attachment_path)
+        
+        if (attachmentPaths.length > 0) {
+          await supabase.storage.from('public-attachments').remove(attachmentPaths)
+        }
+      }
+      
+      // Delete all clips (this will cascade due to foreign key constraints if set up)
+      await supabase.from(CLIPS_RELATION).delete().eq('belongs_to', accessCode)
+      
+      // Finally delete the board
+      return await supabase.from(BOARDS_RELATION).delete().eq(ACCESS_CODE_POSTGRES, accessCode)
+    },
     enabled: false
   })
 
@@ -147,13 +183,14 @@ const OverviewScreen = () => {
     try {
       navigator.clipboard.writeText(shareableLink).then(() => {
         toast({
-          description: 'Text copied to clipboard'
+          description: 'Link copied to clipboard'
         })
       })
     } catch (e) {
       toast({
-        title: 'Failed to copy text',
+        title: 'Failed to copy link',
         description: (e as Error).message,
+        variant: 'destructive'
       })
     }
   }
@@ -171,28 +208,33 @@ const OverviewScreen = () => {
       <ResizablePanelGroup direction={resizableDirection}>
         <ResizablePanel className="flex flex-col p-4 md:p-9 justify-between bg-black text-white font-serif" defaultSize={21} minSize={21} maxSize={31}>
           <div className="flex justify-between items-center text-2xl md:text-3xl lg:text-4xl">
-            <RxArrowLeft onClick={onClickBackButton} className="cursor-pointer"/>
+            <RxArrowLeft onClick={onClickBackButton} className="cursor-pointer hover:text-gray-300 transition-colors"/>
             <p className="font-semibold">CtrlV</p>
           </div>
           <div className="flex flex-col sm:flex-row md:flex-col items-center sm:justify-around font-semibold">
             <p className="my-3 sm:my-0 md:my-3 text-base md:text-lg lg:text-xl text-neutral-400 text-center">{clipboardName}</p>
             <div className="grid grid-cols-2 gap-3 gap-y-5 md:gap-y-10 text-center text-xs md:text-sm md:mt-20 md:mb-10">
               <label htmlFor="uniqueBoardCode" className="text-neutral-500">Unique Board Code:</label>
-              <p id="uniqueBoardCode">{accessCode}</p>
+              <p id="uniqueBoardCode" className="font-mono">{accessCode}</p>
               <label htmlFor="lastDate" className="text-neutral-500">Self-Destruct Date:</label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <p id="lastDate" className="text-expiry-red underline decoration-dotted text-center font-serif">{selfDestructDate.toDateString()}</p>
+                  <p id="lastDate" className="text-expiry-red underline decoration-dotted text-center font-serif cursor-pointer hover:text-red-400 transition-colors">{selfDestructDate.toDateString()}</p>
                 </PopoverTrigger>
-                <PopoverContent className="bg-black text-white text-base p-0 w-44 text-center cursor-pointer">
-                  <p className="px-1 py-2 rounded-t-md hover:bg-gray-768" onClick={onClickDeleteNow}>Delete Now</p>
+                <PopoverContent className="bg-black text-white text-base p-0 w-44 text-center">
+                  <p 
+                    className="px-1 py-2 rounded-t-md hover:bg-gray-800 cursor-pointer transition-colors" 
+                    onClick={onClickDeleteNow}
+                  >
+                    Delete Now
+                  </p>
                 </PopoverContent>
               </Popover>
             </div>
           </div>
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant={buttonVariant} className="text-black md:text-white text-lg md:text-xl w-fit mx-auto font-semibold p-2 mt-2 md:mt-0">
+              <Button variant={buttonVariant} className="text-black md:text-white text-lg md:text-xl w-fit mx-auto font-semibold p-2 mt-2 md:mt-0 hover:bg-gray-800 transition-colors">
                 <RxShare1 className="mr-4" />
                 <span className="mt-1">Share board</span>
               </Button>
@@ -204,7 +246,7 @@ const OverviewScreen = () => {
                   <div className="flex flex-col justify-between w-full md:w-3/5 h-full">
                     <div className="pt-2 mt-2 md:mt-0 mb-2 md:mb-8 flex flex-col items-center justify-between">
                       <p className="text-slate-500 font-semibold pb-2">Access Code:</p>
-                      <span className="text-3xl md:text-5xl font-bold text-green-900 tracking-wider">{accessCode}</span>
+                      <span className="text-3xl md:text-5xl font-bold text-green-900 tracking-wider font-mono">{accessCode}</span>
                     </div>
                     <div className="flex items-center py-2">
                       <Input type="text" disabled className="p-2 mr-2 rounded-sm w-full text-start cursor-text" defaultValue={shareableLink} />
