@@ -25,6 +25,7 @@ interface IClipCard {
   clipId?: string
   attachmentPath?: string
   attachmentName?: string
+  canEdit?: boolean
 }
 
 interface ICreateClip {
@@ -268,7 +269,8 @@ const ClipCard: React.FC<IClipCard> = ({
   isLoading, 
   clipId,
   attachmentPath,
-  attachmentName
+  attachmentName,
+  canEdit = true
 }: IClipCard) => {  
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
@@ -473,19 +475,25 @@ const ClipCard: React.FC<IClipCard> = ({
                   Copy text
                 </Button>
               )}
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={onClickDeleteClip}
-                disabled={deleteLoading}
-                className="ml-auto"
-              >
-                {deleteLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
-                ) : (
-                  <RiDeleteBin2Fill className="h-6 w-6"/>
-                )}
-              </Button>
+              {canEdit ? (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={onClickDeleteClip}
+                  disabled={deleteLoading}
+                  className="ml-auto"
+                >
+                  {deleteLoading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
+                  ) : (
+                    <RiDeleteBin2Fill className="h-6 w-6"/>
+                  )}
+                </Button>
+              ) : (
+                <div className="ml-auto text-xs text-gray-500 bg-gray-100 px-3 py-2 rounded-full">
+                  Read-only
+                </div>
+              )}
               <DialogClose ref={dialogCloseRef} className="hidden" />
             </div>
           </section>
