@@ -13,7 +13,9 @@ export const CLIPS_POSTGRES = 'clips'
 export const TEXT_CONTENT_POSTGRES = 'text_content'
 export const CLIP_TITLE_POSTGRES = 'title'
 export const CLIP_CREATED_AT_POSTGRES = 'created_at'
-export const ATTACHMENTS_POSTGRES = 'attachments'
+export const ATTACHMENTS_POSTGRES = 'attachments' // Legacy field - keeping for compatibility
+export const ATTACHMENT_PATH_POSTGRES = 'attachment_path' // New field for file path
+export const ATTACHMENT_NAME_POSTGRES = 'attachment_name' // New field for original filename
 export const ATTACHMENTS_BUCKET_NAME = 'public-attachments'
 
 export enum QUERY_KEYS {

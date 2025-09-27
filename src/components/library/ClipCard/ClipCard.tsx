@@ -3,10 +3,10 @@ import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTr
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { ATTACHMENTS_BUCKET_NAME, CLIPS_RELATION, QUERY_KEYS, SupabaseContext } from "@/context";
-import { skipToken, useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid"
-import React, { useContext, useEffect, useRef } from "react"
-import { RiAttachment2, RiDeleteBin2Fill } from "react-icons/ri";
+import React, { useContext, useEffect, useRef, useState } from "react"
+import { RiAttachment2, RiDeleteBin2Fill, RiDownload2Line } from "react-icons/ri";
 import { RxCrossCircled, RxPlusCircled } from "react-icons/rx";
 import { LoadingSpinner } from "../LoadingSpinner";
 import { useLocation } from "react-router-dom";
@@ -21,21 +21,23 @@ interface IClipCard {
   timestamp?: string
   attachmentsCount?: number
   error?: Error | PostgrestError | null
-  isLoading?: boolean,
+  isLoading?: boolean
   clipId?: string
+  attachmentPath?: string
+  attachmentName?: string
 }
 
 interface ICreateClip {
   id: string
   created_at: Date
   text_content?: string
-  attachments?: string[]
+  attachment_path?: string
+  attachment_name?: string
   belongs_to: string
 }
 
 function parseDateTimestamp(timestamp: string | undefined) {
   if (!timestamp) return null
-  // TODO: Could need to work on localised timestamps here. Currently only system time is being considered
   const dateObject = new Date(timestamp)
   const hour = dateObject.getHours()
   const hourString = hour < 10 ? '0' + hour : hour.toString()
@@ -47,100 +49,148 @@ function parseDateTimestamp(timestamp: string | undefined) {
 
 export const AddNewClip = () => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { state } = useLocation()
   const { toast } = useToast()
-  const [queryParams, setQueryParams] = React.useState<ICreateClip>()
-  const [uploadedFile, setUploadedFile] = React.useState<File>()
+  const [queryParams, setQueryParams] = useState<ICreateClip>()
+  const [uploadedFile, setUploadedFile] = useState<File>()
+  const [isUploading, setIsUploading] = useState(false)
   const { supabase } = useContext(SupabaseContext)
-  const [createClipQueryResult, uploadFileToStorageQueryResult] = useQueries({
-    queries: [
-      {
-        queryKey: [QUERY_KEYS.CREATE_CLIP],
-        queryFn: async () => await supabase.from(CLIPS_RELATION).insert({ ...queryParams }).select(),
-        enabled: false
-      },
-      {
-        queryKey: [QUERY_KEYS.UPLOAD_FILE],
-        queryFn: uploadedFile ? async () => await supabase.storage.from(ATTACHMENTS_BUCKET_NAME).upload(getFileUploadPathName(uploadedFile, state?.accessCode), uploadedFile) : skipToken,
-        enabled: false
-      }
-    ]
-  })
 
-  const { data, isLoading, refetch } = createClipQueryResult
-  const { data: uploadFileData, isLoading: isFileUploading, refetch: uploadToStorage } = uploadFileToStorageQueryResult
+  const { data: createClipData, isLoading: createClipLoading, refetch: createNewClip, error: createClipError } = useQuery({
+    queryKey: [QUERY_KEYS.CREATE_CLIP, queryParams],
+    queryFn: async () => await supabase.from(CLIPS_RELATION).insert({ ...queryParams }).select(),
+    enabled: false
+  })
 
   const onFileUpdated = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = event.target.files
-    if (uploadedFiles) {
+    if (uploadedFiles && uploadedFiles.length > 0) {
       const file = uploadedFiles[0]
-      // If file size is more than 1 MB, show a toast and don;t do anything else
+      // Check file size (1MB limit)
       if (file.size > 1 * 1024 * 1024) {
         toast({
           title: 'File upload error',
-          description: 'Uploaded file exceeds 1MB size limit',
+          description: 'File size exceeds 1MB limit',
           variant: 'destructive'
         })
-      } else {
-        setUploadedFile(file)
+        return
       }
+      setUploadedFile(file)
     }
   }
 
-  useEffect(() => {
-    console.log({ uploadFileData, isFileUploading })
-    toast({
-      title: 'Result',
-      description: (uploadFileData?.data?.path || uploadFileData?.error?.message) ?? 'Nothing'
-    })
-  }, [uploadFileData, isFileUploading])
-  const onClickCreateClip = () => {
-    const uniqueId = uuidv4()
-    if (state?.accessCode) {
-      // Check if a file is set in state, if yes then first call the upload API
-      // After receiving a response from uploadAPI check for errors and if ok, then proceed with setting these queryParams
-
-      // If no file is set in state, then simply set these queryParams to call create API
-      if (uploadedFile) {
-        uploadToStorage()
-      } else if (textAreaRef?.current && textAreaRef?.current.value) {
-        // Create a clip record
-        setQueryParams({
-          id: uniqueId,
-          created_at: new Date(),
-          text_content: textAreaRef.current.value,
-          belongs_to: state?.accessCode
-        })
-      }      
+  const removeFile = () => {
+    setUploadedFile(undefined)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
 
-  useEffect(() => {
-    if (data?.data && !data.error) {
-      dialogCloseRef.current?.click()
-    } else if (data?.error) {
+  const onClickCreateClip = async () => {
+    if (!state?.accessCode) {
       toast({
         title: 'Error',
-        description: 'Could not create clip. Error: ' + data?.error.message,
+        description: 'No access code found',
         variant: 'destructive'
       })
+      return
     }
-  }, [data, toast])
+
+    const textContent = textAreaRef?.current?.value?.trim()
+    
+    if (!textContent && !uploadedFile) {
+      toast({
+        title: 'Error',
+        description: 'Please add some text or upload a file',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setIsUploading(true)
+    const uniqueId = uuidv4()
+    let attachmentPath = ''
+    let attachmentName = ''
+
+    try {
+      // Upload file if exists
+      if (uploadedFile) {
+        const filePath = getFileUploadPathName(uploadedFile, state.accessCode)
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(ATTACHMENTS_BUCKET_NAME)
+          .upload(filePath, uploadedFile, {
+            upsert: true // Allow overwriting if file exists
+          })
+
+        if (uploadError) {
+          throw new Error(`File upload failed: ${uploadError.message}`)
+        }
+
+        attachmentPath = uploadData.path
+        attachmentName = uploadedFile.name
+      }
+
+      // Create clip record
+      const clipData: ICreateClip = {
+        id: uniqueId,
+        created_at: new Date(),
+        belongs_to: state.accessCode,
+        ...(textContent && { text_content: textContent }),
+        ...(attachmentPath && { 
+          attachment_path: attachmentPath,
+          attachment_name: attachmentName 
+        })
+      }
+
+      setQueryParams(clipData)
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive'
+      })
+      setIsUploading(false)
+    }
+  }
 
   useEffect(() => {
     if (queryParams) {
-      refetch()
+      createNewClip()
     }
-  }, [queryParams, refetch])
+  }, [queryParams, createNewClip])
 
-  if (isLoading) {
+  useEffect(() => {
+    if (createClipData?.data && !createClipData.error && !createClipError) {
+      toast({
+        description: 'Clip created successfully'
+      })
+      // Reset form
+      if (textAreaRef.current) textAreaRef.current.value = ''
+      setUploadedFile(undefined)
+      setQueryParams(undefined)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      dialogCloseRef.current?.click()
+    } else if (createClipData?.error || createClipError) {
+      toast({
+        title: 'Error',
+        description: 'Could not create clip. Error: ' + (createClipError?.message || createClipData?.error?.message),
+        variant: 'destructive'
+      })
+    }
+    setIsUploading(false)
+  }, [createClipData, createClipError, toast])
+
+  if (createClipLoading || isUploading) {
     return <LoadingSpinner />
   }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 h-64 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700">
+        <div className="flex justify-center items-center w-32 mobile-medium:w-44 md:w-72 h-64 text-xs md:text-sm bg-yellow-100 gap-2 border rounded-lg p-4 z-10 shadow-lg text-slate-700 cursor-pointer hover:bg-yellow-200 transition-colors">
           <RxPlusCircled className="h-4 md:h-6 w-4 md:w-6"/>
           {"Add a Clip"}
         </div>
@@ -149,12 +199,57 @@ export const AddNewClip = () => {
         <DialogHeader>
           <DialogTitle>Create a new clip</DialogTitle>
           <section className="user-entered-area">
-            <Textarea className="mt-4" maxLength={2000} ref={textAreaRef} placeholder="Start typing..." />
-            <section className="mt-4 attachments-section flex justify-center w-full items-center">
-              <Input id="picture" type="file" accept="image/*" className="rounded-sm p-2 bg-inherit" onChange={onFileUpdated} />
+            <Textarea 
+              className="mt-4" 
+              maxLength={2000} 
+              ref={textAreaRef} 
+              placeholder="Start typing..." 
+            />
+            
+            <section className="mt-4 attachments-section">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Attachment (max 1MB)</label>
+                {uploadedFile && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={removeFile}
+                    className="text-xs"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+              
+              {!uploadedFile ? (
+                <Input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept="image/*,application/pdf,.txt,.doc,.docx" 
+                  className="rounded-sm p-2 bg-inherit cursor-pointer" 
+                  onChange={onFileUpdated} 
+                />
+              ) : (
+                <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                  <RiAttachment2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm text-green-800 flex-1 truncate">
+                    {uploadedFile.name}
+                  </span>
+                  <span className="text-xs text-green-600">
+                    ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+              )}
             </section>
-            <div className="flex justify-between items-center mt-4">
-              <Button className="font-semibold px-6 py-3 h-12 rounded-2xl" onClick={onClickCreateClip}>Create</Button>
+            
+            <div className="flex justify-between items-center mt-6">
+              <Button 
+                className="font-semibold px-6 py-3 h-12 rounded-2xl" 
+                onClick={onClickCreateClip}
+                disabled={isUploading}
+              >
+                {isUploading ? 'Creating...' : 'Create'}
+              </Button>
               <DialogClose ref={dialogCloseRef} className="hidden" />
             </div>
           </section>
@@ -163,30 +258,51 @@ export const AddNewClip = () => {
     </Dialog>
   )
 }
-const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachmentsCount, error, isLoading, clipId }: IClipCard) => {  
+
+const ClipCard: React.FC<IClipCard> = ({ 
+  title, 
+  description, 
+  timestamp, 
+  attachmentsCount, 
+  error, 
+  isLoading, 
+  clipId,
+  attachmentPath,
+  attachmentName
+}: IClipCard) => {  
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { toast } = useToast()
   const { supabase } = useContext(SupabaseContext)
+  const [isDownloading, setIsDownloading] = useState(false)
 
-  const { refetch, data, isLoading: deleteLoading, error: deleteError } = useQuery({
-    queryKey: [QUERY_KEYS.DELETE_CLIP],
-    queryFn: async () => await supabase.from(CLIPS_RELATION).delete().eq('id', clipId),
+  const { refetch: deleteClip, data: deleteData, isLoading: deleteLoading, error: deleteError } = useQuery({
+    queryKey: [QUERY_KEYS.DELETE_CLIP, clipId],
+    queryFn: async () => {
+      // First delete the file from storage if it exists
+      if (attachmentPath) {
+        await supabase.storage.from(ATTACHMENTS_BUCKET_NAME).remove([attachmentPath])
+      }
+      // Then delete the clip record
+      return await supabase.from(CLIPS_RELATION).delete().eq('id', clipId)
+    },
     enabled: false
   })
 
-
   useEffect(() => {
-    if (data?.status === 204 && !data.error && !deleteError && !deleteLoading) {
+    if (deleteData?.status === 204 && !deleteData.error && !deleteError && !deleteLoading) {
       dialogCloseRef.current?.click()
-    } else if (data?.error || deleteError) {
+      toast({
+        description: 'Clip deleted successfully'
+      })
+    } else if (deleteData?.error || deleteError) {
       toast({
         title: 'Error deleting clip',
-        description: data?.error?.message || deleteError?.message,
+        description: deleteData?.error?.message || deleteError?.message,
         variant: 'destructive'
       })
     }
-  }, [data, deleteError, deleteLoading, toast])
+  }, [deleteData, deleteError, deleteLoading, toast])
   
   // Show loading skeleton
   if (isLoading) {
@@ -210,10 +326,7 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
     )
   }
 
-  // If everything is fine, show the card
-
   const onClickCopyClip = () => {
-    // This functionality is relevant for copy scenario
     if (textAreaRef?.current) {
       textAreaRef.current.disabled = false
       textAreaRef.current.select()
@@ -232,38 +345,79 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
           description: (e as Error).message,
           variant: 'destructive'
         })
-        textAreaRef.current.disabled = true
+        if (textAreaRef.current) {
+          textAreaRef.current.disabled = true
+        }
       }
     }
   }
 
   const onClickDeleteClip = () => {
-    // This functionality is relevant for delete scenario
     if (clipId) {
-      refetch()
+      deleteClip()
+    }
+  }
+
+  const onDownloadAttachment = async () => {
+    if (!attachmentPath || !attachmentName) return
+    
+    setIsDownloading(true)
+    try {
+      const { data, error } = await supabase.storage
+        .from(ATTACHMENTS_BUCKET_NAME)
+        .download(attachmentPath)
+      
+      if (error) {
+        throw new Error(`Download failed: ${error.message}`)
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = attachmentName
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      toast({
+        description: 'File downloaded successfully'
+      })
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({
+        title: 'Download failed',
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsDownloading(false)
     }
   }
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="flex flex-col w-32 mobile-medium:w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg">
+        <div className="flex flex-col w-32 mobile-medium:w-44 md:w-72 gap-2 border rounded-lg p-4 z-10 shadow-lg cursor-pointer hover:shadow-md transition-shadow">
           <div className="flex flex-col gap-2">
-            <p className="text-mmd mobile-medium:text-xs md:text-sm font-semibold truncate">{title}</p>
-            <p className="text-mmd mobile-medium:text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">{description}</p>
+            <p className="text-mmd mobile-medium:text-xs md:text-sm font-semibold truncate">{title || 'Untitled'}</p>
+            <p className="text-mmd mobile-medium:text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">
+              {description || 'No text content'}
+            </p>
           </div>
           <div className="flex justify-between items-center gap-2 text-mmd mobile-medium:text-xs">
             <div className="flex flex-row items-center justify-center w-10 h-10">
-              { attachmentsCount
-                ? (
-                  <>
-                    <RiAttachment2 />
-                    {attachmentsCount}
-                  </>
-                )
-                : null }
+              {(attachmentsCount && attachmentsCount > 0) || attachmentPath ? (
+                <>
+                  <RiAttachment2 className="text-green-600" />
+                  <span className="ml-1 text-green-600">1</span>
+                </>
+              ) : null}
             </div>
-            <p className="text-slate-500 text-[9px] mobile-medium:text-[10px] md:text-sm">{parseDateTimestamp(timestamp)}</p>
+            <p className="text-slate-500 text-[9px] mobile-medium:text-[10px] md:text-sm">
+              {parseDateTimestamp(timestamp)}
+            </p>
           </div>
         </div>
       </DialogTrigger>
@@ -271,11 +425,66 @@ const ClipCard: React.FC<IClipCard> = ({ title, description, timestamp, attachme
         <DialogHeader>
           <DialogTitle>{parseDateTimestamp(timestamp)}</DialogTitle>
           <section className="user-entered-area">
-            <Textarea className="mt-4" maxLength={2000} ref={textAreaRef} disabled placeholder="Start typing..." value={description} />
-            <div className="flex justify-between items-center mt-4">
-              <Button className="font-semibold px-6 py-3 h-12 rounded-2xl" onClick={onClickCopyClip}>Copy text</Button>
-              <Button variant="outline" size="icon" onClick={onClickDeleteClip}>
-                <RiDeleteBin2Fill className="h-6 w-6"/>
+            <Textarea 
+              className="mt-4" 
+              maxLength={2000} 
+              ref={textAreaRef} 
+              disabled 
+              placeholder="No text content" 
+              value={description || ''} 
+            />
+            
+            {/* Attachment Display */}
+            {attachmentPath && attachmentName && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <RiAttachment2 className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm text-blue-800 truncate">
+                      {attachmentName}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onDownloadAttachment}
+                    disabled={isDownloading}
+                    className="ml-2 flex-shrink-0"
+                  >
+                    {isDownloading ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                    ) : (
+                      <RiDownload2Line className="h-4 w-4" />
+                    )}
+                    <span className="ml-1 text-xs">
+                      {isDownloading ? 'Downloading...' : 'Download'}
+                    </span>
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center mt-6">
+              {description && (
+                <Button 
+                  className="font-semibold px-6 py-3 h-12 rounded-2xl" 
+                  onClick={onClickCopyClip}
+                >
+                  Copy text
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={onClickDeleteClip}
+                disabled={deleteLoading}
+                className="ml-auto"
+              >
+                {deleteLoading ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
+                ) : (
+                  <RiDeleteBin2Fill className="h-6 w-6"/>
+                )}
               </Button>
               <DialogClose ref={dialogCloseRef} className="hidden" />
             </div>
