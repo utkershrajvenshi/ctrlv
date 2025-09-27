@@ -31,3 +31,11 @@ export type QueryType<T> = {
   status: number
   statusText: string
 }
+
+export const getFileUploadPathName = (file?: File, accessCode?: string) => {
+  const basePath = 'public'
+  if (file && accessCode) {
+    return `${basePath}-${accessCode}/${file.name}`
+  }
+  return basePath + '/'
+}

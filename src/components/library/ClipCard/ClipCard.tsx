@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { CLIPS_RELATION, QUERY_KEYS, SupabaseContext } from "@/context";
-import { useQuery } from "@tanstack/react-query";
+import { ATTACHMENTS_BUCKET_NAME, CLIPS_RELATION, QUERY_KEYS, SupabaseContext } from "@/context";
+import { skipToken, useQueries, useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid"
 import React, { useContext, useEffect, useRef } from "react"
 import { RiAttachment2, RiDeleteBin2Fill } from "react-icons/ri";
@@ -12,6 +12,8 @@ import { LoadingSpinner } from "../LoadingSpinner";
 import { useLocation } from "react-router-dom";
 import { PostgrestError } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import { getFileUploadPathName } from "@/lib/utils";
 
 interface IClipCard {
   title?: string
@@ -49,23 +51,68 @@ export const AddNewClip = () => {
   const { state } = useLocation()
   const { toast } = useToast()
   const [queryParams, setQueryParams] = React.useState<ICreateClip>()
+  const [uploadedFile, setUploadedFile] = React.useState<File>()
   const { supabase } = useContext(SupabaseContext)
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: [QUERY_KEYS.CREATE_CLIP],
-    queryFn: async () => await supabase.from(CLIPS_RELATION).insert({ ...queryParams }).select(),
-    enabled: false
+  const [createClipQueryResult, uploadFileToStorageQueryResult] = useQueries({
+    queries: [
+      {
+        queryKey: [QUERY_KEYS.CREATE_CLIP],
+        queryFn: async () => await supabase.from(CLIPS_RELATION).insert({ ...queryParams }).select(),
+        enabled: false
+      },
+      {
+        queryKey: [QUERY_KEYS.UPLOAD_FILE],
+        queryFn: uploadedFile ? async () => await supabase.storage.from(ATTACHMENTS_BUCKET_NAME).upload(getFileUploadPathName(uploadedFile, state?.accessCode), uploadedFile) : skipToken,
+        enabled: false
+      }
+    ]
   })
 
+  const { data, isLoading, refetch } = createClipQueryResult
+  const { data: uploadFileData, isLoading: isFileUploading, refetch: uploadToStorage } = uploadFileToStorageQueryResult
+
+  const onFileUpdated = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = event.target.files
+    if (uploadedFiles) {
+      const file = uploadedFiles[0]
+      // If file size is more than 1 MB, show a toast and don;t do anything else
+      if (file.size > 1 * 1024 * 1024) {
+        toast({
+          title: 'File upload error',
+          description: 'Uploaded file exceeds 1MB size limit',
+          variant: 'destructive'
+        })
+      } else {
+        setUploadedFile(file)
+      }
+    }
+  }
+
+  useEffect(() => {
+    console.log({ uploadFileData, isFileUploading })
+    toast({
+      title: 'Result',
+      description: (uploadFileData?.data?.path || uploadFileData?.error?.message) ?? 'Nothing'
+    })
+  }, [uploadFileData, isFileUploading])
   const onClickCreateClip = () => {
     const uniqueId = uuidv4()
-    if (textAreaRef?.current && textAreaRef?.current.value && state?.accessCode) {
-      // Create a clip record
-      setQueryParams({
-        id: uniqueId,
-        created_at: new Date(),
-        text_content: textAreaRef.current.value,
-        belongs_to: state?.accessCode
-      })
+    if (state?.accessCode) {
+      // Check if a file is set in state, if yes then first call the upload API
+      // After receiving a response from uploadAPI check for errors and if ok, then proceed with setting these queryParams
+
+      // If no file is set in state, then simply set these queryParams to call create API
+      if (uploadedFile) {
+        uploadToStorage()
+      } else if (textAreaRef?.current && textAreaRef?.current.value) {
+        // Create a clip record
+        setQueryParams({
+          id: uniqueId,
+          created_at: new Date(),
+          text_content: textAreaRef.current.value,
+          belongs_to: state?.accessCode
+        })
+      }      
     }
   }
 
@@ -103,6 +150,9 @@ export const AddNewClip = () => {
           <DialogTitle>Create a new clip</DialogTitle>
           <section className="user-entered-area">
             <Textarea className="mt-4" maxLength={2000} ref={textAreaRef} placeholder="Start typing..." />
+            <section className="mt-4 attachments-section flex justify-center w-full items-center">
+              <Input id="picture" type="file" accept="image/*" className="rounded-sm p-2 bg-inherit" onChange={onFileUpdated} />
+            </section>
             <div className="flex justify-between items-center mt-4">
               <Button className="font-semibold px-6 py-3 h-12 rounded-2xl" onClick={onClickCreateClip}>Create</Button>
               <DialogClose ref={dialogCloseRef} className="hidden" />
