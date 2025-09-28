@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { MarkdownEditor } from "@/components/library/MarkdownEditor";
+import { MarkdownViewer } from "@/components/library/MarkdownViewer";
 import { ATTACHMENTS_BUCKET_NAME, CLIPS_RELATION, QUERY_KEYS, SupabaseContext } from "@/context";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid"
@@ -49,7 +50,7 @@ function parseDateTimestamp(timestamp: string | undefined) {
 }
 
 export const AddNewClip = () => {
-  const textAreaRef = useRef<HTMLTextAreaElement>(null)
+  const [textContent, setTextContent] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { state } = useLocation()
@@ -99,9 +100,9 @@ export const AddNewClip = () => {
       return
     }
 
-    const textContent = textAreaRef?.current?.value?.trim()
+    const trimmedContent = textContent.trim()
     
-    if (!textContent && !uploadedFile) {
+    if (!trimmedContent && !uploadedFile) {
       toast({
         title: 'Error',
         description: 'Please add some text or upload a file',
@@ -122,7 +123,7 @@ export const AddNewClip = () => {
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from(ATTACHMENTS_BUCKET_NAME)
           .upload(filePath, uploadedFile, {
-            upsert: true // Allow overwriting if file exists
+            upsert: true
           })
 
         if (uploadError) {
@@ -138,7 +139,7 @@ export const AddNewClip = () => {
         id: uniqueId,
         created_at: new Date(),
         belongs_to: state.accessCode,
-        ...(textContent && { text_content: textContent }),
+        ...(trimmedContent && { text_content: trimmedContent }),
         ...(attachmentPath && { 
           attachment_path: attachmentPath,
           attachment_name: attachmentName 
@@ -168,8 +169,7 @@ export const AddNewClip = () => {
       toast({
         description: 'Clip created successfully'
       })
-      // Reset form
-      if (textAreaRef.current) textAreaRef.current.value = ''
+      setTextContent('')
       setUploadedFile(undefined)
       setQueryParams(undefined)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -196,16 +196,20 @@ export const AddNewClip = () => {
           {"Add a Clip"}
         </div>
       </DialogTrigger>
-      <DialogContent className="font-serif max-w-sm sm:max-w-3xl">
+      <DialogContent className="font-serif max-w-sm sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create a new clip</DialogTitle>
           <section className="user-entered-area">
-            <Textarea 
-              className="mt-4" 
-              maxLength={2000} 
-              ref={textAreaRef} 
-              placeholder="Start typing..." 
-            />
+            <div className="mt-4">
+              <MarkdownEditor
+                value={textContent}
+                onChange={setTextContent}
+                placeholder="Start typing... Use markdown for rich formatting"
+                maxLength={2000}
+                showPreview={true}
+                className="min-h-[250px]"
+              />
+            </div>
             
             <section className="mt-4 attachments-section">
               <div className="flex items-center justify-between mb-2">
@@ -272,7 +276,6 @@ const ClipCard: React.FC<IClipCard> = ({
   attachmentName,
   canEdit = true
 }: IClipCard) => {  
-  const textAreaRef = useRef<HTMLTextAreaElement>(null)
   const dialogCloseRef = useRef<HTMLButtonElement>(null)
   const { toast } = useToast()
   const { supabase } = useContext(SupabaseContext)
@@ -329,17 +332,12 @@ const ClipCard: React.FC<IClipCard> = ({
   }
 
   const onClickCopyClip = () => {
-    if (textAreaRef?.current) {
-      textAreaRef.current.disabled = false
-      textAreaRef.current.select()
+    if (description) {
       try {
-        navigator.clipboard.writeText(textAreaRef.current.value).then(() => {
+        navigator.clipboard.writeText(description).then(() => {
           toast({
             description: 'Text copied to clipboard'
           })
-          if (textAreaRef.current) {
-            textAreaRef.current.disabled = true
-          }
         })
       } catch (e) {
         toast({
@@ -347,9 +345,6 @@ const ClipCard: React.FC<IClipCard> = ({
           description: (e as Error).message,
           variant: 'destructive'
         })
-        if (textAreaRef.current) {
-          textAreaRef.current.disabled = true
-        }
       }
     }
   }
@@ -398,6 +393,9 @@ const ClipCard: React.FC<IClipCard> = ({
     }
   }
 
+  // Create a plain text preview by removing markdown syntax
+  const plainTextPreview = description?.replace(/[*_`~#[\]()]/g, '') || 'No text content'
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -405,7 +403,7 @@ const ClipCard: React.FC<IClipCard> = ({
           <div className="flex flex-col gap-2">
             <p className="text-mmd mobile-medium:text-xs md:text-sm font-semibold truncate">{title || 'Untitled'}</p>
             <p className="text-mmd mobile-medium:text-xs md:text-sm text-slate-500 h-40 line-clamp-8 break-words">
-              {description || 'No text content'}
+              {plainTextPreview}
             </p>
           </div>
           <div className="flex justify-between items-center gap-2 text-mmd mobile-medium:text-xs">
@@ -423,18 +421,16 @@ const ClipCard: React.FC<IClipCard> = ({
           </div>
         </div>
       </DialogTrigger>
-      <DialogContent className="font-serif max-w-sm sm:max-w-3xl">
+      <DialogContent className="font-serif max-w-sm sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{parseDateTimestamp(timestamp)}</DialogTitle>
           <section className="user-entered-area">
-            <Textarea 
-              className="mt-4" 
-              maxLength={2000} 
-              ref={textAreaRef} 
-              disabled 
-              placeholder="No text content" 
-              value={description || ''} 
-            />
+            {/* Rendered Markdown Content */}
+            {description && (
+              <div className="mt-4 border rounded-md p-4 bg-gray-50 max-h-96 overflow-y-auto">
+                <MarkdownViewer content={description} />
+              </div>
+            )}
             
             {/* Attachment Display */}
             {attachmentPath && attachmentName && (
