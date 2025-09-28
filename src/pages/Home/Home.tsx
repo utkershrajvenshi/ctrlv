@@ -207,15 +207,18 @@ const Home: React.FC = () => {
       />
       <div className="flex gap-16 p-8 md:p-12 lg:p-16 w-full">
         <div className="flex flex-col w-full sm:w-3/5 gap-16 font-bold text-3xl md:text-4xl lg:text-5xl">
-          <p>{'Create anywhere-available clipboards in seconds for increased productivity across teams.'}</p>
-          <p className="text-success-green">{'For free!'}</p>
-          {user && (
+          {user ? (
             <div className="text-lg md:text-xl text-gray-600">
               <p>Welcome back, <span className="text-black">{user.email}</span>!</p>
               <p className="text-sm md:text-base mt-2">
                 Create private boards visible only to you, or public boards that anyone can access.
               </p>
             </div>
+          ) : (
+            <>
+              <p>{'Create anywhere-available clipboards in seconds for increased productivity across teams.'}</p>
+              <p className="text-success-green">{'For free!'}</p>
+            </>
           )}
         </div>
       </div>
