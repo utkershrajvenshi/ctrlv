@@ -17,6 +17,12 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { createShareableLink } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { PopoverTrigger, Popover, PopoverContent } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { User } from "@supabase/supabase-js";
 
 interface IClipsArea {
@@ -228,6 +234,12 @@ const OverviewScreen = () => {
     navigate('/')
   }
 
+  const onClickLogout = () => {
+    supabase.auth.signOut().then(() => {
+      navigate('/')
+    })
+  }
+
   const onClickDeleteNow = () => {
     if (canEdit) {
       deleteCurrentBoard()
@@ -354,6 +366,16 @@ const OverviewScreen = () => {
               <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                 Read-only mode
               </span>
+            )}
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">{user.email?.split('@')[0]}</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={onClickLogout}>Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </section>
           <section className="overflow-y-auto overscroll-auto h-full">
